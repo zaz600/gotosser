@@ -1,4 +1,4 @@
-﻿package main
+package main
 
 import (
 	"io"
@@ -15,6 +15,7 @@ import (
 
 const (
 	configFileName = "gotosser.yaml"
+	statfile       = "tmp/stat.json"
 )
 
 type processingItem struct {
@@ -31,6 +32,8 @@ var (
 	processingchan = make(chan processingItem, 1000)
 	processing     = NewProcessingCache()
 	cfg            *Config
+	tosserstat     = NewTosserStat(statfile)
+	savestatchan   chan processingItem
 )
 
 //перемещаем файл
@@ -97,24 +100,34 @@ func needExclude(file string, scangroup ScanGroup, rule CopyRule) bool {
 	return false
 }
 
+//проверка файла. если по каким-либо условиям он не подходит,
+//возвращаем false
+func needProcess(item processingItem, rule CopyRule) bool {
+	//Проверяем маски
+	if matched, _ := rule.match(item.srcFile); !matched {
+		return false
+	}
+	//проверяем исключения
+	if needExclude(item.srcFile, item.scangroup, rule) {
+		return false
+	}
+	return true
+}
+
 //копирует или перемещает конкретный файл
 //в зависимости от заданных правил
 func processItem() {
 	for item := range processingchan {
 		//Проверяем правила
+		fileProcessed := false
 		for _, k := range item.scangroup.getRuleKeys() {
 			rule := item.scangroup.Rules[k]
-			//Проверяем маски
-			if matched, _ := rule.match(item.srcFile); !matched {
+
+			//проверяем файл
+			if !needProcess(item, rule) {
 				continue
 			}
-
-			//проверяем исключения
-			if needExclude(item.srcFile, item.scangroup, rule) {
-				continue
-			}
-
-			//файл подошел под маски правила
+			//файл прошел проверки
 			fullDstFilePath, err := getAbsPath(rule.DstDir, item.srcFile)
 			if err != nil {
 				log.Println("Ошибка вычисления абсолютного пути", err)
@@ -146,23 +159,37 @@ func processItem() {
 				}
 			}
 
+			//Обработка файла
+			fileMoved := false
 			switch rule.Mode {
 			case "move":
-				moveFile(item.fullSrcFilePath, fullDstFilePath)
-				//тут надо обработать возможные ошибки
+				if err := moveFile(item.fullSrcFilePath, fullDstFilePath); err == nil {
+					fileMoved = true
+					fileProcessed = true
+				}
 			case "copy":
-				copyFile(item.fullSrcFilePath, fullDstFilePath)
-				//тут надо обработать возможные ошибки
+				if err := copyFile(item.fullSrcFilePath, fullDstFilePath); err == nil {
+					fileProcessed = true
+				}
 			default:
 				log.Println("Неизвестный режим", rule.Mode)
 			}
-			//тут надо проверить, если файл перемещён, то другие правила проверять нет смысла
+
+			//если файл перемещён, то другие правила проверять нет смысла
+			if fileMoved {
+				break
+			}
+		}
+		if fileProcessed {
+			//файл обработан сохраняем статистику
+			savestatchan <- item
 		}
 		//после обработки всеми правилами удаляем файл из кэша
 		processing.del(item.fullSrcFilePath)
 	}
 }
 
+//processItems обрабатывает список файлов
 func processItems(items []os.FileInfo, fullSrcDir string, scangroup ScanGroup) {
 	for _, item := range items {
 		// обрабатываем только файлы. Не каталоги, символические ссылки и т.п.
@@ -170,12 +197,18 @@ func processItems(items []os.FileInfo, fullSrcDir string, scangroup ScanGroup) {
 			continue
 		}
 		srcFile := item.Name()
+
+		//пропускаем файлы, попадающе под глобальный список исключений
+		//или список исключений группы
+		if needExclude(srcFile, scangroup, CopyRule{}) {
+			continue
+		}
+
 		fullSrcFilePath := filepath.Join(fullSrcDir, srcFile)
 		if processing.check(fullSrcFilePath) == true {
 			log.Println("файл уже обрабатывается", fullSrcFilePath)
 			continue
 		}
-		//тут надо проверить маски исключения
 
 		//добавляем файл в кэш
 		processing.add(fullSrcFilePath)
@@ -261,6 +294,13 @@ func main() {
 
 	//запускаем цикл сканирования каталогов
 	go scanLoop(cfg)
+
+	//запускаем горутину, которая сохраняет статистику в файл
+	savestatchan = SaveStatLoop(tosserstat)
+
+	if cfg.EnableHTTP {
+		go runHTTP(cfg)
+	}
 
 	//ожидаем завершение программы по Ctrl-C
 	sigChan := make(chan os.Signal, 1)

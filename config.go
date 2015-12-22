@@ -4,7 +4,11 @@ package main
 import (
 	"errors"
 	"io/ioutil"
+	"log"
 	"os"
+	"path/filepath"
+	"sort"
+	"strings"
 
 	"gopkg.in/yaml.v2"
 )
@@ -76,4 +80,33 @@ func reloadConfig(configName string) (cfg *Config, err error) {
 		return cfg, nil
 	}
 	return nil, errNotModified
+}
+
+func (sd ScanGroup) getRuleKeys() []int {
+	var keys []int
+	for k := range sd.Rules {
+		keys = append(keys, k)
+	}
+	sort.Ints(keys)
+	return keys
+}
+
+//проверяет подходит ли файл под маски данного правила
+//возвращает список масок
+func (r CopyRule) match(srcFile string) (bool, []string) {
+	var masks []string
+	for _, mask := range r.Masks {
+		matched, err := filepath.Match(strings.ToLower(mask), strings.ToLower(srcFile))
+		if err != nil {
+			log.Printf("Ошибка проверки MASK (%s). %s", mask, err)
+			continue
+		}
+		if matched {
+			masks = append(masks, mask)
+		}
+	}
+	if len(masks) == 0 {
+		return false, masks
+	}
+	return true, masks
 }

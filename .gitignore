@@ -1,0 +1,11 @@
+logs/
+src/
+dst/
+gotosser.yaml
+tmp/
+*.exe
+build-debug.bat
+build-release.bat
+!build/win/build-debug.bat
+!build/win/build-release.bat
+

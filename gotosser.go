@@ -1,4 +1,4 @@
-package main
+﻿package main
 
 import (
 	"io"
@@ -28,7 +28,9 @@ type processingItem struct {
 var (
 	//контролируем число потоков processScanGroup
 	tokens         = make(chan struct{}, 8)
-	processingchan = make(chan processingItem, 100)
+	processingchan = make(chan processingItem, 1000)
+	processing     = NewProcessingCache()
+	cfg            *Config
 )
 
 //перемещаем файл
@@ -74,9 +76,25 @@ func getAbsPath(dir, file string) (string, error) {
 	abspath, err := filepath.Abs(filePath)
 	if err != nil {
 		return "", err
-
 	}
 	return abspath, nil
+}
+
+//проверка на исключения из правил
+func needExclude(file string, scangroup ScanGroup, rule CopyRule) bool {
+	//пропуск файлов по маскам, заданным в настройках группы
+	if cfg.matchExclude(file) {
+		return true
+	}
+	//пропуск файлов по маскам, заданным в настройках группы
+	if scangroup.matchExclude(file) {
+		return true
+	}
+	//пропуск файлов по маскам, заданным в настройках правила
+	if rule.matchExclude(file) {
+		return true
+	}
+	return false
 }
 
 //копирует или перемещает конкретный файл
@@ -90,11 +108,42 @@ func processItem() {
 			if matched, _ := rule.match(item.srcFile); !matched {
 				continue
 			}
+
+			//проверяем исключения
+			if needExclude(item.srcFile, item.scangroup, rule) {
+				continue
+			}
+
 			//файл подошел под маски правила
 			fullDstFilePath, err := getAbsPath(rule.DstDir, item.srcFile)
 			if err != nil {
 				log.Println("Ошибка вычисления абсолютного пути", err)
 				continue
+			}
+
+			//создаем каталоги
+			fullDstFileDir := filepath.Dir(fullDstFilePath)
+			if err := os.MkdirAll(fullDstFileDir, os.ModeDir); err != nil {
+				log.Println("Ошибка создания каталога", fullDstFileDir, err)
+				continue
+			}
+
+			//если файл уже существует
+			if _, err := os.Stat(fullDstFilePath); err == nil {
+				switch rule.IfExists {
+				case "replace":
+					log.Printf("Файл существует. %s ifexists=%s. Удаляем файл в конечном каталоге", fullDstFilePath, rule.IfExists)
+					if err := os.Remove(fullDstFilePath); err != nil {
+						log.Println(err)
+						continue
+					}
+				case "skip":
+					log.Printf("Файл существует. %s ifexists=%s. Пропускаем файл", fullDstFilePath, rule.IfExists)
+					continue
+				default:
+					log.Printf("Файл существует. %s Неизвестное значение ifexists=%s. Пропускаем файл", fullDstFilePath, rule.IfExists)
+					continue
+				}
 			}
 
 			switch rule.Mode {
@@ -107,7 +156,10 @@ func processItem() {
 			default:
 				log.Println("Неизвестный режим", rule.Mode)
 			}
+			//тут надо проверить, если файл перемещён, то другие правила проверять нет смысла
 		}
+		//после обработки всеми правилами удаляем файл из кэша
+		processing.del(item.fullSrcFilePath)
 	}
 }
 
@@ -119,7 +171,14 @@ func processItems(items []os.FileInfo, fullSrcDir string, scangroup ScanGroup) {
 		}
 		srcFile := item.Name()
 		fullSrcFilePath := filepath.Join(fullSrcDir, srcFile)
+		if processing.check(fullSrcFilePath) == true {
+			log.Println("файл уже обрабатывается", fullSrcFilePath)
+			continue
+		}
 		//тут надо проверить маски исключения
+
+		//добавляем файл в кэш
+		processing.add(fullSrcFilePath)
 		processingchan <- processingItem{srcFile, fullSrcFilePath, scangroup, item.Size()}
 		log.Println(fullSrcFilePath)
 	}
@@ -136,6 +195,20 @@ func processScanGroup(scangroup ScanGroup) {
 			log.Println("Ошибка вычисления абсолютного пути", srcDir, err)
 			continue
 		}
+		//создаем каталоги, если необходимо
+		if scangroup.СreateSrc {
+			if err := os.MkdirAll(fullSrcDir, os.ModeDir); err != nil {
+				log.Println("Ошибка создания каталога", fullSrcDir, err)
+				continue
+			}
+		}
+
+		//если каталог уже сканируется, пропускаем его
+		if processing.check(fullSrcDir) == true {
+			log.Println("каталог уже сканируется", fullSrcDir)
+			continue
+		}
+
 		log.Println("Сканируем каталог", fullSrcDir)
 		//читаем содержимое каталога
 		items, err := ioutil.ReadDir(fullSrcDir)
@@ -145,7 +218,10 @@ func processScanGroup(scangroup ScanGroup) {
 			continue
 		}
 		//обрабатываем файлы
+		processing.add(fullSrcDir)
+		//сделать горутиной
 		processItems(items, fullSrcDir, scangroup)
+		processing.del(fullSrcDir)
 	}
 }
 
@@ -174,7 +250,8 @@ func scanLoop(cfg *Config) {
 
 func main() {
 	//загружаем конфиг
-	cfg, err := reloadConfig(configFileName)
+	var err error
+	cfg, err = reloadConfig(configFileName)
 	if err != nil {
 		if err != errNotModified {
 			log.Fatalf("Не удалось загрузить %s: %s", configFileName, err)

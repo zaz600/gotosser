@@ -1,4 +1,4 @@
-//config.go
+﻿//config.go
 package main
 
 import (
@@ -109,4 +109,50 @@ func (r CopyRule) match(srcFile string) (bool, []string) {
 		return false, masks
 	}
 	return true, masks
+}
+
+/*проверки на исключение*/
+//проверка глобального списка исключений
+func (c Config) matchExclude(srcFile string) bool {
+	for _, mask := range c.GlobalExcludeMasks {
+		matched, err := filepath.Match(strings.ToLower(mask), strings.ToLower(srcFile))
+		if err != nil {
+			log.Printf("Ошибка проверки MASK (%s). %s", mask, err)
+			continue
+		}
+		if matched {
+			return true
+		}
+	}
+	return false
+}
+
+//проверка списка исключений группы
+func (sd ScanGroup) matchExclude(srcFile string) bool {
+	for _, mask := range sd.ExcludeMasks {
+		matched, err := filepath.Match(strings.ToLower(mask), strings.ToLower(srcFile))
+		if err != nil {
+			log.Printf("Ошибка проверки MASK (%s). %s", mask, err)
+			continue
+		}
+		if matched {
+			return true
+		}
+	}
+	return false
+}
+
+//проверка списка исключений правила
+func (r CopyRule) matchExclude(srcFile string) bool {
+	for _, mask := range r.ExcludeMasks {
+		matched, err := filepath.Match(strings.ToLower(mask), strings.ToLower(srcFile))
+		if err != nil {
+			log.Printf("Ошибка проверки MASK (%s). %s", mask, err)
+			continue
+		}
+		if matched {
+			return true
+		}
+	}
+	return false
 }

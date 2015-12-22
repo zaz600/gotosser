@@ -28,12 +28,18 @@ type processingItem struct {
 
 var (
 	//контролируем число потоков processScanGroup
-	tokens         = make(chan struct{}, 8)
+	tokens         chan struct{}
 	processingchan = make(chan processingItem, 1000)
 	processing     = NewProcessingCache()
 	cfg            *Config
 	tosserstat     = NewTosserStat(statfile)
 	savestatchan   chan processingItem
+
+	//эти переменные заполняются линкером.
+	//чтобы их передать надо компилировать программу с ключами
+	//go build -ldflags "-X main.buildtime '2015-12-22' -X main.version 'v1.0'"
+	version   = "debug build"
+	buildtime = "n/a"
 )
 
 //перемещаем файл
@@ -130,14 +136,14 @@ func processItem() {
 			//файл прошел проверки
 			fullDstFilePath, err := getAbsPath(rule.DstDir, item.srcFile)
 			if err != nil {
-				log.Println("Ошибка вычисления абсолютного пути", err)
+				errorln("Ошибка вычисления абсолютного пути", rule.DstDir, err)
 				continue
 			}
 
 			//создаем каталоги
 			fullDstFileDir := filepath.Dir(fullDstFilePath)
 			if err := os.MkdirAll(fullDstFileDir, os.ModeDir); err != nil {
-				log.Println("Ошибка создания каталога", fullDstFileDir, err)
+				errorln("Ошибка создания каталога", fullDstFileDir, err)
 				continue
 			}
 
@@ -145,16 +151,16 @@ func processItem() {
 			if _, err := os.Stat(fullDstFilePath); err == nil {
 				switch rule.IfExists {
 				case "replace":
-					log.Printf("Файл существует. %s ifexists=%s. Удаляем файл в конечном каталоге", fullDstFilePath, rule.IfExists)
+					Info.Printf("Файл существует. %s ifexists=%s. Удаляем файл в конечном каталоге", fullDstFilePath, rule.IfExists)
 					if err := os.Remove(fullDstFilePath); err != nil {
-						log.Println(err)
+						errorln(err)
 						continue
 					}
 				case "skip":
-					log.Printf("Файл существует. %s ifexists=%s. Пропускаем файл", fullDstFilePath, rule.IfExists)
+					Info.Printf("Файл существует. %s ifexists=%s. Пропускаем файл", fullDstFilePath, rule.IfExists)
 					continue
 				default:
-					log.Printf("Файл существует. %s Неизвестное значение ifexists=%s. Пропускаем файл", fullDstFilePath, rule.IfExists)
+					Info.Printf("Файл существует. %s Неизвестное значение ifexists=%s. Пропускаем файл", fullDstFilePath, rule.IfExists)
 					continue
 				}
 			}
@@ -166,13 +172,14 @@ func processItem() {
 				if err := moveFile(item.fullSrcFilePath, fullDstFilePath); err == nil {
 					fileMoved = true
 					fileProcessed = true
+					FileLog.Printf("%s -> %s", item.fullSrcFilePath, fullDstFilePath)
 				}
 			case "copy":
 				if err := copyFile(item.fullSrcFilePath, fullDstFilePath); err == nil {
 					fileProcessed = true
 				}
 			default:
-				log.Println("Неизвестный режим", rule.Mode)
+				errorln("Неизвестный режим", rule.Mode)
 			}
 
 			//если файл перемещён, то другие правила проверять нет смысла
@@ -206,14 +213,14 @@ func processItems(items []os.FileInfo, fullSrcDir string, scangroup ScanGroup) {
 
 		fullSrcFilePath := filepath.Join(fullSrcDir, srcFile)
 		if processing.check(fullSrcFilePath) == true {
-			log.Println("файл уже обрабатывается", fullSrcFilePath)
+			Debug.Println("Файл уже обрабатывается", fullSrcFilePath)
 			continue
 		}
 
 		//добавляем файл в кэш
 		processing.add(fullSrcFilePath)
 		processingchan <- processingItem{srcFile, fullSrcFilePath, scangroup, item.Size()}
-		log.Println(fullSrcFilePath)
+		Info.Println(fullSrcFilePath)
 	}
 }
 
@@ -225,29 +232,29 @@ func processScanGroup(scangroup ScanGroup) {
 		//разворачиваем маску времени (%Y%m%d и т.п.), если есть в пути
 		fullSrcDir, err := getAbsPath(srcDir, "")
 		if err != nil {
-			log.Println("Ошибка вычисления абсолютного пути", srcDir, err)
+			errorln("Ошибка вычисления абсолютного пути", srcDir, err)
 			continue
 		}
 		//создаем каталоги, если необходимо
 		if scangroup.СreateSrc {
 			if err := os.MkdirAll(fullSrcDir, os.ModeDir); err != nil {
-				log.Println("Ошибка создания каталога", fullSrcDir, err)
+				errorln("Ошибка создания каталога", fullSrcDir, err)
 				continue
 			}
 		}
 
 		//если каталог уже сканируется, пропускаем его
 		if processing.check(fullSrcDir) == true {
-			log.Println("каталог уже сканируется", fullSrcDir)
+			Debug.Println("Каталог уже сканируется", fullSrcDir)
 			continue
 		}
 
-		log.Println("Сканируем каталог", fullSrcDir)
+		Debug.Println("Сканируем каталог", fullSrcDir)
 		//читаем содержимое каталога
 		items, err := ioutil.ReadDir(fullSrcDir)
 		if err != nil {
-			log.Println(err)
-			log.Printf("Обработка каталога завершена %s", fullSrcDir)
+			errorln(err)
+			Debug.Printf("Обработка каталога завершена %s", fullSrcDir)
 			continue
 		}
 		//обрабатываем файлы
@@ -277,6 +284,17 @@ func scanLoop(cfg *Config) {
 			tokens <- struct{}{}
 			go processScanGroup(scangroup)
 		}
+		// Перезагружаем конфиг
+		cfgTmp, err := reloadConfig(configFileName)
+		if err != nil {
+			if err != errNotModified {
+				errorln("readconfig:", err)
+			}
+		} else {
+			Info.Println("Перезагружаем конфигурационный файл")
+			cfg = cfgTmp
+			initLogger(cfg)
+		}
 		time.Sleep(time.Duration(cfg.RescanInterval) * time.Second)
 	}
 }
@@ -290,8 +308,12 @@ func main() {
 			log.Fatalf("Не удалось загрузить %s: %s", configFileName, err)
 		}
 	}
-	//log.Printf("%#v", cfg)
-
+	//инициализируем логгеры
+	if err := initLogger(cfg); err != nil {
+		log.Fatalln(err)
+	}
+	Info.Printf("Версия: %s от %s\n", version, buildtime)
+	tokens = make(chan struct{}, cfg.MaxScanThreads)
 	//запускаем цикл сканирования каталогов
 	go scanLoop(cfg)
 
@@ -310,7 +332,8 @@ func main() {
 	for {
 		select {
 		case <-sigChan:
-			log.Println("CTRL-C: Завершаю работу.")
+			errorln("CTRL-C: Завершаю работу.")
+			tosserstat.save(statfile)
 			return
 		}
 	}

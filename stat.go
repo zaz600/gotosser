@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"io/ioutil"
-	"log"
 	"os"
 	"path/filepath"
 	"time"
@@ -58,11 +57,11 @@ func (ts *TosserStat) load(ConfigName string) (err error) {
 func (ts *TosserStat) save(ConfigName string) {
 	b, err := json.Marshal(ts)
 	if err != nil {
-		log.Println("Не удалось сохранить статистику в файл. ", err)
+		errorln("Не удалось сохранить статистику в файл. ", err)
 	}
 	err = ioutil.WriteFile(ConfigName, b, 0666)
 	if err != nil {
-		log.Println("Не удалось сохранить статистику в файл. ", err)
+		errorln("Не удалось сохранить статистику в файл. ", err)
 	}
 }
 
@@ -71,7 +70,7 @@ func NewTosserStat(ConfigName string) *TosserStat {
 	if _, err := os.Stat(filepath.Dir(ConfigName)); err != nil {
 		err := os.MkdirAll(filepath.Dir(ConfigName), os.ModeDir)
 		if err != nil {
-			log.Println(err)
+			errorln(err)
 		}
 	}
 	ts := new(TosserStat)

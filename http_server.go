@@ -36,8 +36,11 @@ const template = `<html><head><title>Тоссер: статистика</title>
    }
   </style>
 	<body><h2>Статистика тоссера за %s</h2>
+	<div> Версия: %s от %s</div>
 	<table>%s</table>
-	</body></html>`
+	<ul>%s</ul>
+	</body>
+	</html>`
 
 func showstat(w http.ResponseWriter, r *http.Request) {
 
@@ -71,11 +74,16 @@ func showstat(w http.ResponseWriter, r *http.Request) {
 		}
 		trs += fmt.Sprintf("<tr><td>%s</td><td align=\"right\">%d</td><td align=\"right\">%s</td><td align=\"right\">%s</td></tr>\n", dir, dirStat.Count, sizeStr, LastProcessingDateStr)
 	}
-	fmt.Fprintf(w, template, now, trs)
+
+	li := ""
+	for _, e := range errorHistory {
+		li += "<li>" + e + "</li>"
+	}
+	fmt.Fprintf(w, template, now, version, buildtime, trs, li)
 }
 
 func runHTTP(cfg *Config) {
-	log.Println("Запуск веб-сервера на", cfg.Listen)
+	Info.Println("Запуск веб-сервера на", cfg.Listen)
 	http.HandleFunc("/", showstat)
 	err := http.ListenAndServe(cfg.Listen, nil)
 	if err != nil {

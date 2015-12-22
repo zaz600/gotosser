@@ -113,6 +113,3 @@ scangroups:
       dst_dir: c:\test\dst3\
       ifexists: replace
       mode: move
-
-
-

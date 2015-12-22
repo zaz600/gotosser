@@ -1,10 +1,9 @@
-﻿//config.go
+//config.go
 package main
 
 import (
 	"errors"
 	"io/ioutil"
-	"log"
 	"os"
 	"path/filepath"
 	"sort"
@@ -98,7 +97,7 @@ func (r CopyRule) match(srcFile string) (bool, []string) {
 	for _, mask := range r.Masks {
 		matched, err := filepath.Match(strings.ToLower(mask), strings.ToLower(srcFile))
 		if err != nil {
-			log.Printf("Ошибка проверки MASK (%s). %s", mask, err)
+			errorf("Ошибка проверки MASK (%s). %s", mask, err)
 			continue
 		}
 		if matched {
@@ -117,7 +116,7 @@ func (c Config) matchExclude(srcFile string) bool {
 	for _, mask := range c.GlobalExcludeMasks {
 		matched, err := filepath.Match(strings.ToLower(mask), strings.ToLower(srcFile))
 		if err != nil {
-			log.Printf("Ошибка проверки MASK (%s). %s", mask, err)
+			errorf("Ошибка проверки MASK (%s). %s", mask, err)
 			continue
 		}
 		if matched {
@@ -132,7 +131,7 @@ func (sd ScanGroup) matchExclude(srcFile string) bool {
 	for _, mask := range sd.ExcludeMasks {
 		matched, err := filepath.Match(strings.ToLower(mask), strings.ToLower(srcFile))
 		if err != nil {
-			log.Printf("Ошибка проверки MASK (%s). %s", mask, err)
+			errorf("Ошибка проверки MASK (%s). %s", mask, err)
 			continue
 		}
 		if matched {
@@ -147,7 +146,7 @@ func (r CopyRule) matchExclude(srcFile string) bool {
 	for _, mask := range r.ExcludeMasks {
 		matched, err := filepath.Match(strings.ToLower(mask), strings.ToLower(srcFile))
 		if err != nil {
-			log.Printf("Ошибка проверки MASK (%s). %s", mask, err)
+			errorf("Ошибка проверки MASK (%s). %s", mask, err)
 			continue
 		}
 		if matched {

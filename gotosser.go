@@ -235,18 +235,34 @@ func processScanGroup(scangroup ScanGroup) {
 			errorln("Ошибка вычисления абсолютного пути", srcDir, err)
 			continue
 		}
-		//создаем каталоги, если необходимо
-		if scangroup.СreateSrc {
-			if err := os.MkdirAll(fullSrcDir, os.ModeDir); err != nil {
-				errorln("Ошибка создания каталога", fullSrcDir, err)
-				continue
-			}
-		}
 
 		//если каталог уже сканируется, пропускаем его
 		if processing.check(fullSrcDir) == true {
 			Debug.Println("Каталог уже сканируется", fullSrcDir)
 			continue
+		}
+
+		//создаем каталог-источник, если не существует и СreateSrc = true
+		if _, err := os.Stat(fullSrcDir); err != nil {
+			if os.IsNotExist(err) {
+				if scangroup.СreateSrc == true {
+					Info.Println("Создаём каталог(и) источник: ", fullSrcDir)
+					err := os.MkdirAll(fullSrcDir, os.ModeDir)
+					if err != nil {
+						errorf("Не удалось создать каталог %s", fullSrcDir)
+						Debug.Printf("Обработка каталога завершена %s", fullSrcDir)
+						continue
+					}
+				} else {
+					Debug.Printf("Каталог источник не существует %s. СreateSrc = false. Пропускаем каталог", fullSrcDir)
+					Debug.Printf("Обработка каталога завершена %s", fullSrcDir)
+					continue
+				}
+			} else {
+				errorln(err)
+				Debug.Printf("Обработка каталога завершена %s", fullSrcDir)
+				continue
+			}
 		}
 
 		Debug.Println("Сканируем каталог", fullSrcDir)

@@ -80,6 +80,9 @@ func copyFile(src string, dst string) (err error) {
 	return err
 }
 
+//getAbsPath принимает имя папки(путь) и имя файла
+//возвращает абсолютный полный путь к файлу и/или ошибку
+//при этом раскрывает в пути переменные времени в формате strftime 
 func getAbsPath(dir, file string) (string, error) {
 	filePath := filepath.Join(strftime.Format(dir, time.Now()), file)
 	abspath, err := filepath.Abs(filePath)

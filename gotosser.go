@@ -82,7 +82,7 @@ func copyFile(src string, dst string) (err error) {
 
 //getAbsPath принимает имя папки(путь) и имя файла
 //возвращает абсолютный полный путь к файлу и/или ошибку
-//при этом раскрывает в пути переменные времени в формате strftime 
+//при этом раскрывает в пути переменные времени в формате strftime
 func getAbsPath(dir, file string) (string, error) {
 	filePath := filepath.Join(strftime.Format(dir, time.Now()), file)
 	abspath, err := filepath.Abs(filePath)
@@ -238,6 +238,7 @@ func processScanGroup(scangroup ScanGroup) {
 			errorln("Ошибка вычисления абсолютного пути", srcDir, err)
 			continue
 		}
+		Debug.Println("Сканируем каталог", fullSrcDir)
 
 		//если каталог уже сканируется, пропускаем его
 		if processing.check(fullSrcDir) == true {
@@ -268,7 +269,6 @@ func processScanGroup(scangroup ScanGroup) {
 			}
 		}
 
-		Debug.Println("Сканируем каталог", fullSrcDir)
 		//читаем содержимое каталога
 		items, err := ioutil.ReadDir(fullSrcDir)
 		if err != nil {

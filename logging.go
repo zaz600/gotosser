@@ -44,11 +44,11 @@ func initLogger(cfg *Config) error {
 	if strings.ToUpper(cfg.LogLevel) == "DEBUG" {
 		multi := io.MultiWriter(LumberjackLogger, os.Stdout)
 		Debug = log.New(multi, "DEBUG: ", log.Ldate|log.Ltime)
-		Info = log.New(multi, "INFO:  ", log.Ldate|log.Ltime) 
+		Info = log.New(multi, "INFO:  ", log.Ldate|log.Ltime)
 	} else if strings.ToUpper(cfg.LogLevel) == "INFO" {
 		multi := io.MultiWriter(LumberjackLogger, os.Stdout)
 		Debug = log.New(ioutil.Discard, "DEBUG: ", log.Ldate|log.Ltime)
-		Info = log.New(multi, "INFO:  ", log.Ldate|log.Ltime) 
+		Info = log.New(multi, "INFO:  ", log.Ldate|log.Ltime)
 	} else if strings.ToUpper(cfg.LogLevel) == "ERROR" {
 		Debug = log.New(ioutil.Discard, "DEBUG: ", log.Ldate|log.Ltime)
 		Info = log.New(ioutil.Discard, "INFO:  ", log.Ldate|log.Ltime)

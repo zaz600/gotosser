@@ -137,6 +137,7 @@ func processItem() {
 				continue
 			}
 			//файл прошел проверки
+			Info.Println(item.fullSrcFilePath)
 			fullDstFilePath, err := getAbsPath(rule.DstDir, item.srcFile)
 			if err != nil {
 				errorln("Ошибка вычисления абсолютного пути", rule.DstDir, err)
@@ -223,7 +224,6 @@ func processItems(items []os.FileInfo, fullSrcDir string, scangroup ScanGroup) {
 		//добавляем файл в кэш
 		processing.add(fullSrcFilePath)
 		processingchan <- processingItem{srcFile, fullSrcFilePath, scangroup, item.Size()}
-		Info.Println(fullSrcFilePath)
 	}
 }
 

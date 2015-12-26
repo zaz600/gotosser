@@ -30,7 +30,7 @@ var (
 	//контролируем число потоков processScanGroup
 	tokens         chan struct{}
 	processingchan = make(chan processingItem, 1000)
-	processing     = NewProcessingCache()
+	processing     = newProcessingCache()
 	cfg            *Config
 	tosserstat     = NewTosserStat(statfile)
 	savestatchan   chan processingItem

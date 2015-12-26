@@ -30,8 +30,8 @@ func (p *processingCache) check(fullSrcPath string) bool {
 	return ok
 }
 
-//NewProcessingCache - создает и возвращает ссылку на processingCache
-func NewProcessingCache() *processingCache {
+//newProcessingCache - создает и возвращает ссылку на processingCache
+func newProcessingCache() *processingCache {
 	p := new(processingCache)
 	p.cache = make(map[string]int)
 	return p

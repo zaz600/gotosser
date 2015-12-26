@@ -24,9 +24,9 @@ func (p *processingCache) del(fullSrcPath string) {
 }
 
 func (p *processingCache) check(fullSrcPath string) bool {
-	p.Lock()
+	p.RLock()
 	_, ok := p.cache[fullSrcPath]
-	p.Unlock()
+	p.RUnlock()
 	return ok
 }
 

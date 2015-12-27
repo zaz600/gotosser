@@ -33,7 +33,7 @@
 	     <td align="center" style="width: 100px;">Суммарный размер</td>
 	     <td align="center" style="width: 100px;">Последняя передача</td>
 	   </tr>
-      {{range $d  := .dirStatInfoList}}
+      {{range $d  := .DirStatInfoList}}
        <tr>
           <td>{{$d.Dir}}</td>
           <td align="right">{{$d.Stat.Count}}</td>
@@ -43,7 +43,7 @@
       {{end}}
       </table>
       <ul>
-      {{range $e  := .errorHistory}}
+      {{range $e  := .ErrorHistory}}
         <li> {{$e}} </li>
       {{end}}
       </ul>

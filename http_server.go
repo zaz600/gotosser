@@ -48,7 +48,14 @@ func showstat(w http.ResponseWriter, r *http.Request) {
 	for _, dir := range dirs {
 		dirStatInfoList = append(dirStatInfoList, &dirStat{dir, dayStat[dir]})
 	}
-	tmplStat.Execute(w, map[string]interface{}{"StatDate": now, "Version": version, "VersionDate": buildtime, "dirStatInfoList": dirStatInfoList, "errorHistory": errorHistory})
+
+	tmplStat.Execute(w, &struct {
+		StatDate        string
+		Version         string
+		VersionDate     string
+		DirStatInfoList []*dirStat
+		ErrorHistory    []string
+	}{now, version, buildtime, dirStatInfoList, errorHistory})
 }
 
 func runHTTP(cfg *Config) {

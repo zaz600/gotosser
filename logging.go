@@ -52,7 +52,7 @@ func initLogger(cfg *Config) error {
 	case "ERROR":
 		log.Level = logrus.ErrorLevel
 	default:
-		return fmt.Errorf("Неизвестные уровень лога, %s", cfg.LogLevel)
+		return fmt.Errorf("Неизвестный уровень лога, %s", cfg.LogLevel)
 	}
 
 	log.Infoln("Уровень логирования", cfg.LogLevel)

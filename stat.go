@@ -2,7 +2,9 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
+	"math"
 	"os"
 	"path/filepath"
 	"time"
@@ -17,6 +19,22 @@ type dirStatInfo struct {
 	LastProcessingDate int64
 	//общий размер файлов
 	TotalSize int64
+}
+
+//возвращает время в формате чч:мм:сс
+func (d dirStatInfo) LastProcessingDateStr() string {
+	return strftime.Format("%H:%M:%S", time.Unix(d.LastProcessingDate, 0))
+}
+
+//возвращает размер в человекочитаемом формате
+func (d dirStatInfo) HumanReadableSize() string {
+	if d.TotalSize == 0 {
+		return "0B"
+	}
+	sizeName := []string{"B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"}
+	i := int(math.Log2(float64(d.TotalSize)) / 10)
+	hrSize := fmt.Sprintf("%d%s", d.TotalSize/int64(math.Pow(1024, float64(i))), sizeName[i])
+	return hrSize
 }
 
 type TosserStat struct {

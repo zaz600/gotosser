@@ -4,7 +4,6 @@ import (
 	"html/template"
 	"net/http"
 	"sort"
-	"sync"
 	"time"
 
 	"github.com/hhkbp2/go-strftime"
@@ -13,7 +12,6 @@ import (
 var (
 	//шаблон вывода статистики работы
 	tmplStat *template.Template
-	loadOnce sync.Once
 )
 
 //для передачи в шаблон
@@ -23,14 +21,6 @@ type dirStat struct {
 }
 
 func showstat(w http.ResponseWriter, r *http.Request) {
-	loadOnce.Do(func() {
-		var err error
-		tmplStat, err = template.ParseFiles("templates/stat.tmpl")
-		if err != nil {
-			log.Fatal(err)
-		}
-	})
-
 	now := strftime.Format("%Y-%m-%d", time.Now())
 	//получаем статистику за дату
 	dayStat, _ := tosserstat.Dates[now]
@@ -59,8 +49,15 @@ func showstat(w http.ResponseWriter, r *http.Request) {
 
 func runHTTP(cfg *Config) {
 	log.Infoln("Запуск веб-сервера на", cfg.Listen)
+	//загружаем шаблон
+	var err error
+	tmplStat, err = template.ParseFiles("templates/stat.tmpl")
+	if err != nil {
+		log.Fatal(err)
+	}
+	//запускаем сервер
 	http.HandleFunc("/", showstat)
-	err := http.ListenAndServe(cfg.Listen, nil)
+	err = http.ListenAndServe(cfg.Listen, nil)
 	if err != nil {
 		log.Fatal(err)
 	}

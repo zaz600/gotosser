@@ -5,7 +5,6 @@ import (
 	"io"
 	"os"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/Sirupsen/logrus"
@@ -21,31 +20,30 @@ var (
 	fileLog          = logrus.New()
 	lumberjackLogger *lumberjack.Logger
 	errorHistory     []string
-	syncOnce         = new(sync.Once)
 )
 
+func init() {
+	lumberjackLogger = &lumberjack.Logger{
+		Filename:   "logs/gotosser.log",
+		MaxSize:    100, // megabytes
+		MaxBackups: 10,
+		MaxAge:     30, //days
+		LocalTime:  true,
+	}
+	log.Formatter = &logrus.TextFormatter{TimestampFormat: "2006-01-02 15:04:05"}
+	multi := io.MultiWriter(lumberjackLogger, os.Stderr)
+	log.Out = multi
+
+	//лог скопированных файлов
+	file, err := os.OpenFile("logs/files.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	fileLog.Level = logrus.InfoLevel
+	fileLog.Out = file
+}
+
 func initLogger(cfg *Config) error {
-	syncOnce.Do(func() {
-		lumberjackLogger = &lumberjack.Logger{
-			Filename:   "logs/gotosser.log",
-			MaxSize:    100, // megabytes
-			MaxBackups: 10,
-			MaxAge:     30, //days
-			LocalTime:  true,
-		}
-		log.Formatter = &logrus.TextFormatter{TimestampFormat: "2006-01-02 15:04:05"}
-		multi := io.MultiWriter(lumberjackLogger, os.Stderr)
-		log.Out = multi
-
-		//лог скопированных файлов
-		file, err := os.OpenFile("logs/files.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
-		if err != nil {
-			log.Fatalln(err)
-		}
-		fileLog.Level = logrus.InfoLevel
-		fileLog.Out = file
-	})
-
 	switch strings.ToUpper(cfg.LogLevel) {
 	case "DEBUG":
 		log.Level = logrus.DebugLevel
@@ -54,7 +52,7 @@ func initLogger(cfg *Config) error {
 	case "ERROR":
 		log.Level = logrus.ErrorLevel
 	default:
-		log.Fatalln("Неизвестные уровень лога", cfg.LogLevel)
+		return fmt.Errorf("Неизвестные уровень лога, %s", cfg.LogLevel)
 	}
 
 	log.Infoln("Уровень логирования", cfg.LogLevel)

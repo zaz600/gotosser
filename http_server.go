@@ -2,7 +2,6 @@ package main
 
 import (
 	"html/template"
-	"log"
 	"net/http"
 	"sort"
 	"sync"
@@ -59,7 +58,7 @@ func showstat(w http.ResponseWriter, r *http.Request) {
 }
 
 func runHTTP(cfg *Config) {
-	Info.Println("Запуск веб-сервера на", cfg.Listen)
+	log.Infoln("Запуск веб-сервера на", cfg.Listen)
 	http.HandleFunc("/", showstat)
 	err := http.ListenAndServe(cfg.Listen, nil)
 	if err != nil {

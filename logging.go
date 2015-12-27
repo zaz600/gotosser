@@ -3,13 +3,12 @@ package main
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
-	"log"
 	"os"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/Sirupsen/logrus"
 	"gopkg.in/natefinch/lumberjack.v2"
 )
 
@@ -18,63 +17,59 @@ const (
 )
 
 var (
-	Info             *log.Logger
-	Error            *log.Logger
-	Debug            *log.Logger
-	FileLog          *log.Logger
-	LumberjackLogger *lumberjack.Logger
+	log              = logrus.New()
+	fileLog          = logrus.New()
+	lumberjackLogger *lumberjack.Logger
 	errorHistory     []string
 	syncOnce         = new(sync.Once)
 )
 
 func initLogger(cfg *Config) error {
 	syncOnce.Do(func() {
-		LumberjackLogger = &lumberjack.Logger{
+		lumberjackLogger = &lumberjack.Logger{
 			Filename:   "logs/gotosser.log",
-			MaxSize:    30, // megabytes
-			MaxBackups: 5,
+			MaxSize:    100, // megabytes
+			MaxBackups: 10,
 			MaxAge:     30, //days
 			LocalTime:  true,
 		}
+		log.Formatter = &logrus.TextFormatter{TimestampFormat: "2006-01-02 15:04:05"}
+		multi := io.MultiWriter(lumberjackLogger, os.Stderr)
+		log.Out = multi
+
+		//лог скопированных файлов
+		file, err := os.OpenFile("logs/files.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+		if err != nil {
+			log.Fatalln(err)
+		}
+		fileLog.Level = logrus.InfoLevel
+		fileLog.Out = file
 	})
 
-	if err := LumberjackLogger.Rotate(); err != nil {
-		return fmt.Errorf("Failed to open log file: %s", err)
+	switch strings.ToUpper(cfg.LogLevel) {
+	case "DEBUG":
+		log.Level = logrus.DebugLevel
+	case "INFO":
+		log.Level = logrus.InfoLevel
+	case "ERROR":
+		log.Level = logrus.ErrorLevel
+	default:
+		log.Fatalln("Неизвестные уровень лога", cfg.LogLevel)
 	}
-	if strings.ToUpper(cfg.LogLevel) == "DEBUG" {
-		multi := io.MultiWriter(LumberjackLogger, os.Stdout)
-		Debug = log.New(multi, "DEBUG: ", log.Ldate|log.Ltime)
-		Info = log.New(multi, "INFO:  ", log.Ldate|log.Ltime)
-	} else if strings.ToUpper(cfg.LogLevel) == "INFO" {
-		multi := io.MultiWriter(LumberjackLogger, os.Stdout)
-		Debug = log.New(ioutil.Discard, "DEBUG: ", log.Ldate|log.Ltime)
-		Info = log.New(multi, "INFO:  ", log.Ldate|log.Ltime)
-	} else if strings.ToUpper(cfg.LogLevel) == "ERROR" {
-		Debug = log.New(ioutil.Discard, "DEBUG: ", log.Ldate|log.Ltime)
-		Info = log.New(ioutil.Discard, "INFO:  ", log.Ldate|log.Ltime)
-	}
-	Info.Println("Уровень логирования", cfg.LogLevel)
 
-	multi := io.MultiWriter(LumberjackLogger, os.Stderr)
-	Error = log.New(multi, "ERROR: ", log.Ldate|log.Ltime|log.Lshortfile)
-
-	file, err := os.OpenFile("logs/files.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
-	if err != nil {
-		return fmt.Errorf("Failed to open files.log file: %s", err)
-	}
-	FileLog = log.New(file, "", log.Ldate|log.Ltime)
+	log.Infoln("Уровень логирования", cfg.LogLevel)
 	return nil
 }
 
 func errorln(v ...interface{}) {
 	s := fmt.Sprintln(v...)
-	Error.Print(s)
+	log.Error(s)
 	saveErrorHistory(s)
 }
 
 func errorf(format string, v ...interface{}) {
 	s := fmt.Sprintf(format, v...)
-	Error.Println(s)
+	log.Error(s)
 	saveErrorHistory(s)
 }
 

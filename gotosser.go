@@ -334,7 +334,7 @@ func main() {
 	if err := initLogger(cfg); err != nil {
 		log.Fatalln(err)
 	}
-	log.Infof("Версия: %s от %s", version, buildtime)
+	log.Infof("Версия: %s. Собрано %s", version, buildtime)
 	tokens = make(chan struct{}, cfg.MaxScanThreads)
 	//запускаем цикл сканирования каталогов
 	go scanLoop(cfg)

@@ -314,8 +314,9 @@ func scanLoop(cfg *Config) {
 			log.Infoln("Перезагружаем конфигурационный файл")
 			if err := initLogger(cfgTmp); err != nil {
 				errorln(err)
+			} else {
+				cfg = cfgTmp
 			}
-			cfg = cfgTmp
 		}
 		time.Sleep(time.Duration(cfg.RescanInterval) * time.Second)
 	}

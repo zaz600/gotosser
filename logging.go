@@ -5,7 +5,6 @@ import (
 	"io"
 	"os"
 	"strings"
-	"time"
 
 	"github.com/Sirupsen/logrus"
 	"gopkg.in/natefinch/lumberjack.v2"
@@ -19,7 +18,7 @@ var (
 	log              = logrus.New()
 	fileLog          = logrus.New()
 	lumberjackLogger *lumberjack.Logger
-	errorHistory     []string
+	errorHistory     = newErrorHistoryStore(histLength)
 )
 
 func init() {
@@ -65,19 +64,11 @@ func initLogger(cfg *Config) error {
 func errorln(v ...interface{}) {
 	s := fmt.Sprint(v...)
 	log.Error(s)
-	saveErrorHistory(s)
+	errorHistory.Add(s)
 }
 
 func errorf(format string, v ...interface{}) {
 	s := fmt.Sprintf(format, v...)
 	log.Error(s)
-	saveErrorHistory(s)
-}
-
-func saveErrorHistory(s string) {
-	tm := time.Now().Format("2006-01-02 15:04:05")
-	errorHistory = append(errorHistory, fmt.Sprintf("%s %s", tm, s))
-	if len(errorHistory) > histLength {
-		errorHistory = errorHistory[1:]
-	}
+	errorHistory.Add(s)
 }

@@ -44,7 +44,7 @@ func showstat(w http.ResponseWriter, r *http.Request) {
 		VersionDate     string
 		DirStatInfoList []*dirStat
 		ErrorHistory    []string
-	}{now, version, buildtime, dirStatInfoList, errorHistory})
+	}{now, version, buildtime, dirStatInfoList, errorHistory.Get()})
 }
 
 func runHTTP(cfg *Config) {

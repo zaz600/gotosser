@@ -45,6 +45,10 @@ type Config struct {
 	RescanInterval     int         `yaml:"rescaninterval"`
 	LogLevel           string      `yaml:"loglevel"`
 	GlobalExcludeMasks []string    `yaml:"excludemasks"`
+	LogFilename        string      `yaml:"log_filename"`
+	LogMaxSize         int         `yaml:"log_max_size"`
+	LogMaxBackups      int         `yaml:"log_max_backups"`
+	LogMaxAge          int         `yaml:"log_max_age"`
 }
 
 func readConfig(ConfigName string) (x *Config, err error) {

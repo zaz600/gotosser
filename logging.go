@@ -23,18 +23,7 @@ var (
 )
 
 func init() {
-	lumberjackLogger = &lumberjack.Logger{
-		Filename:   "logs/gotosser.log",
-		MaxSize:    100, // megabytes
-		MaxBackups: 10,
-		MaxAge:     30, //days
-		LocalTime:  true,
-	}
-	log.Formatter = &logrus.TextFormatter{TimestampFormat: "2006-01-02 15:04:05"}
-	multi := io.MultiWriter(lumberjackLogger, os.Stderr)
-	log.Out = multi
-
-	//лог скопированных файлов
+	//лог скопированных файлов. при перезагрузке конфига не меняется
 	file, err := os.OpenFile("logs/files.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 	if err != nil {
 		log.Fatalln(err)
@@ -54,6 +43,20 @@ func initLogger(cfg *Config) error {
 	default:
 		return fmt.Errorf("Неизвестный уровень лога, %s", cfg.LogLevel)
 	}
+
+	if lumberjackLogger != nil {
+		lumberjackLogger.Close()
+	}
+	lumberjackLogger = &lumberjack.Logger{
+		Filename:   cfg.LogFilename,
+		MaxSize:    cfg.LogMaxSize, // megabytes
+		MaxBackups: cfg.LogMaxBackups,
+		MaxAge:     cfg.LogMaxAge, //days
+		LocalTime:  true,
+	}
+	log.Formatter = &logrus.TextFormatter{TimestampFormat: "2006-01-02 15:04:05"}
+	multi := io.MultiWriter(lumberjackLogger, os.Stderr)
+	log.Out = multi
 
 	log.Infoln("Уровень логирования", cfg.LogLevel)
 	return nil

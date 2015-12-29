@@ -127,6 +127,7 @@ func needProcess(item processingItem, rule CopyRule) bool {
 //в зависимости от заданных правил
 func processItem() {
 	for item := range processingchan {
+		log.Debugln("Проверяем файл", item.fullSrcFilePath)
 		//Проверяем правила
 		fileProcessed := false
 		for _, k := range item.scangroup.getRuleKeys() {
@@ -134,6 +135,7 @@ func processItem() {
 
 			//проверяем файл
 			if !needProcess(item, rule) {
+				log.Debugln("Пропускаем файл", item.fullSrcFilePath)
 				continue
 			}
 			//файл прошел проверки
@@ -173,15 +175,23 @@ func processItem() {
 			fileMoved := false
 			switch rule.Mode {
 			case "move":
+				log.WithFields(logrus.Fields{"src": item.fullSrcFilePath, "dst": fullDstFilePath}).Debug("Перемещаем файл")
 				if err := moveFile(item.fullSrcFilePath, fullDstFilePath); err == nil {
 					fileMoved = true
 					fileProcessed = true
-					log.WithFields(logrus.Fields{"src": item.fullSrcFilePath, "dst": fullDstFilePath}).Info("Файл скопирован")
-					fileLog.WithFields(logrus.Fields{"src": item.fullSrcFilePath, "dst": fullDstFilePath}).Info("Файл скопирован")
+					log.WithFields(logrus.Fields{"src": item.fullSrcFilePath, "dst": fullDstFilePath}).Info("Файл перенесён")
+					fileLog.WithFields(logrus.Fields{"src": item.fullSrcFilePath, "dst": fullDstFilePath}).Info("Файл перенесён")
+				} else {
+					errorln(err)
 				}
 			case "copy":
+				log.WithFields(logrus.Fields{"src": item.fullSrcFilePath, "dst": fullDstFilePath}).Debug("Копируем файл")
 				if err := copyFile(item.fullSrcFilePath, fullDstFilePath); err == nil {
 					fileProcessed = true
+					log.WithFields(logrus.Fields{"src": item.fullSrcFilePath, "dst": fullDstFilePath}).Info("Файл скопирован")
+					fileLog.WithFields(logrus.Fields{"src": item.fullSrcFilePath, "dst": fullDstFilePath}).Info("Файл скопирован")
+				} else {
+					errorln(err)
 				}
 			default:
 				errorln("Неизвестный режим", rule.Mode)

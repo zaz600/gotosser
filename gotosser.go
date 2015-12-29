@@ -179,8 +179,8 @@ func processItem() {
 				if err := moveFile(item.fullSrcFilePath, fullDstFilePath); err == nil {
 					fileMoved = true
 					fileProcessed = true
-					log.WithFields(logrus.Fields{"src": item.fullSrcFilePath, "dst": fullDstFilePath}).Info("Файл перенесён")
-					fileLog.WithFields(logrus.Fields{"src": item.fullSrcFilePath, "dst": fullDstFilePath}).Info("Файл перенесён")
+					log.WithFields(logrus.Fields{"src": item.fullSrcFilePath, "dst": fullDstFilePath}).Info("Файл перемещён")
+					fileLog.WithFields(logrus.Fields{"src": item.fullSrcFilePath, "dst": fullDstFilePath}).Info("Файл перемещён")
 				} else {
 					errorln(err)
 				}

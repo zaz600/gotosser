@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"strings"
+	"sync"
 
 	"github.com/Sirupsen/logrus"
 	"gopkg.in/natefinch/lumberjack.v2"
@@ -19,19 +21,24 @@ var (
 	fileLog          = logrus.New()
 	lumberjackLogger *lumberjack.Logger
 	errorHistory     = newErrorHistoryStore(histLength)
+	initOnce         sync.Once
 )
 
-func init() {
-	//лог скопированных файлов. при перезагрузке конфига не меняется
-	file, err := os.OpenFile("logs/files.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
-	if err != nil {
-		log.Fatalln(err)
-	}
-	fileLog.Level = logrus.InfoLevel
-	fileLog.Out = file
-}
-
 func initLogger(cfg *Config) error {
+	initOnce.Do(func() {
+		//лог скопированных файлов. при перезагрузке конфига не меняется
+		logDir := filepath.Dir(cfg.LogFilename)
+		filelogFilePath := filepath.Join(logDir, "files.log")
+		if err := os.MkdirAll(logDir, os.ModeDir); err != nil {
+			log.Fatalln("Ошибка создания каталога", logDir, err)
+		}
+		file, err := os.OpenFile(filelogFilePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+		if err != nil {
+			log.Fatalln(err)
+		}
+		fileLog.Level = logrus.InfoLevel
+		fileLog.Out = file
+	})
 	switch strings.ToUpper(cfg.LogLevel) {
 	case "DEBUG":
 		log.Level = logrus.DebugLevel

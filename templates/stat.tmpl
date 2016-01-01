@@ -44,7 +44,7 @@
       </table>
       <ul>
       {{range $e  := .ErrorHistory}}
-        <li> {{$e}} </li>
+        <li> {{$e.Time.Format "2006-01-02 15:04:05"}} {{$e.Msg}} </li>
       {{end}}
       </ul>
    </body>

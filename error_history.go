@@ -14,7 +14,7 @@ type errorHistoryItem struct {
 //хранит определенное количество сообщений об ошибках
 type errorHistoryStore struct {
 	sync.RWMutex
-	data     []errorHistoryItem //[]string
+	data     []errorHistoryItem
 	MaxCount int
 }
 

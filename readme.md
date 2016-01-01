@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/zaz600/gotosser.svg?branch=master)](https://travis-ci.org/zaz600/gotosser)
+
 # Описание
 Исходный текст к статье [Пишем "тоссер" на Go](https://goo.gl/2fP3bO)    
 Программа предназначена для копирования файлов из одних каталогов в другие.

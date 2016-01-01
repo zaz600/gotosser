@@ -43,7 +43,7 @@ func showstat(w http.ResponseWriter, r *http.Request) {
 		Version         string
 		VersionDate     string
 		DirStatInfoList []*dirStat
-		ErrorHistory    []string
+		ErrorHistory    []errorHistoryItem
 	}{now, version, buildtime, dirStatInfoList, errorHistory.Get()})
 }
 

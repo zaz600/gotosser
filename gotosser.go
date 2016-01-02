@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
@@ -44,9 +45,35 @@ var (
 
 //перемещаем файл
 func moveFile(src, dst string) error {
-	err := os.Rename(src, dst)
+	//если src и dst на одном диске
+	if filepath.VolumeName(src) == filepath.VolumeName(dst) {
+		//то используем os.Rename
+		err := os.Rename(src, dst)
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+	//проверяем доступ к файлу
+	f, err := os.OpenFile(src, os.O_RDWR, 0666)
 	if err != nil {
 		return err
+	}
+	err = f.Close()
+	if err != nil {
+		return err
+	}
+
+	//если на разных дисках
+	//копируем
+	err = copyFile(src, dst)
+	if err != nil {
+		return err
+	}
+	//удаляем
+	err = os.Remove(src)
+	if err != nil {
+		return fmt.Errorf("Файл скопирован. Но удалить его не получилось. %v", err)
 	}
 	return nil
 }

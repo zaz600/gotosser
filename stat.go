@@ -8,14 +8,12 @@ import (
 	"os"
 	"path/filepath"
 	"time"
-
-	"github.com/hhkbp2/go-strftime"
 )
 
 type dirStatInfo struct {
 	//количество файлов
 	Count int64
-	//дата последней передачи файла в UTC
+	//дата последней передачи файла
 	LastProcessingDate time.Time
 	//общий размер файлов
 	TotalSize int64
@@ -40,7 +38,7 @@ type TosserStat struct {
 
 func (ts *TosserStat) update(file string, size int64) {
 	dir := filepath.Dir(file)
-	now := strftime.Format("%Y-%m-%d", time.Now())
+	now := time.Now().Format("2006-01-02")
 
 	if ts.Dates[now] == nil {
 		ts.Dates[now] = make(map[string]*dirStatInfo)
@@ -51,7 +49,7 @@ func (ts *TosserStat) update(file string, size int64) {
 	}
 
 	ts.Dates[now][dir].Count++
-	ts.Dates[now][dir].LastProcessingDate = time.Now().UTC()
+	ts.Dates[now][dir].LastProcessingDate = time.Now()
 	ts.Dates[now][dir].TotalSize += size
 }
 

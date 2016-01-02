@@ -15,15 +15,10 @@ import (
 type dirStatInfo struct {
 	//количество файлов
 	Count int64
-	//дата последней передачи файла
-	LastProcessingDate int64
+	//дата последней передачи файла в UTC
+	LastProcessingDate time.Time
 	//общий размер файлов
 	TotalSize int64
-}
-
-//возвращает время в формате чч:мм:сс
-func (d dirStatInfo) LastProcessingDateStr() string {
-	return strftime.Format("%H:%M:%S", time.Unix(d.LastProcessingDate, 0))
 }
 
 //возвращает размер в человекочитаемом формате
@@ -37,6 +32,7 @@ func (d dirStatInfo) HumanReadableSize() string {
 	return hrSize
 }
 
+//TosserStat хранит статистику передачи файлов за даты по папкам
 type TosserStat struct {
 	Dates      map[string]map[string]*dirStatInfo
 	ConfigName string
@@ -55,7 +51,7 @@ func (ts *TosserStat) update(file string, size int64) {
 	}
 
 	ts.Dates[now][dir].Count++
-	ts.Dates[now][dir].LastProcessingDate = time.Now().Unix()
+	ts.Dates[now][dir].LastProcessingDate = time.Now().UTC()
 	ts.Dates[now][dir].TotalSize += size
 }
 

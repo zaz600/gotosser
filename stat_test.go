@@ -34,14 +34,6 @@ func TestDirStatInfoHumanReadableSize(t *testing.T) {
 	}
 }
 
-func TestDirStatInfoLastProcessingDateStr(t *testing.T) {
-	var tm int64 = 1451711058 // 02.01.2016 15:04:18
-	dsi.LastProcessingDate = tm
-	if dsi.LastProcessingDateStr() != "15:04:18" {
-		t.Errorf(`LastProcessingDateStr, %d != "%s"`, tm, "15:04:18")
-	}
-}
-
 func TestTosserStat(t *testing.T) {
 	ts := NewTosserStat("tmp.json")
 	if ts == nil {

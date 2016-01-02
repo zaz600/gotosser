@@ -5,8 +5,6 @@ import (
 	"net/http"
 	"sort"
 	"time"
-
-	"github.com/hhkbp2/go-strftime"
 )
 
 var (
@@ -21,7 +19,7 @@ type dirStat struct {
 }
 
 func showstat(w http.ResponseWriter, r *http.Request) {
-	now := strftime.Format("%Y-%m-%d", time.Now())
+	now := time.Now().Format("2006-01-02")
 	//получаем статистику за дату
 	dayStat, _ := tosserstat.Dates[now]
 

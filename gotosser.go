@@ -73,7 +73,11 @@ func moveFile(src, dst string) error {
 	//удаляем
 	err = os.Remove(src)
 	if err != nil {
-		return fmt.Errorf("Файл скопирован. Но удалить его не получилось. %v", err)
+		if os.IsNotExist(err) {
+			log.WithFields(logrus.Fields{"src": src, "dst": dst, "err": err}).Warn("Файл перемещён, но удалить его не получилось: удалён кем-то ещё.")
+			return nil
+		}
+		return fmt.Errorf("Файл перемещён. Но удалить его не получилось. %v", err)
 	}
 	return nil
 }

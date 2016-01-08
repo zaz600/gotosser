@@ -88,6 +88,7 @@ func NewTosserStat(ConfigName string) *TosserStat {
 	ts := new(TosserStat)
 	err := ts.load(ConfigName)
 	if err != nil {
+        log.Errorln(err)
 		ts.Dates = make(map[string]map[string]*dirStatInfo)
 	}
 	ts.ConfigName = ConfigName

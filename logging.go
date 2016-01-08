@@ -69,7 +69,7 @@ func initLogger(cfg *Config) error {
 }
 
 func errorln(v ...interface{}) {
-	s := fmt.Sprint(v...)
+	s := fmt.Sprintln(v...)
 	log.Error(s)
 	errorHistory.Add(s)
 }

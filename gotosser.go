@@ -35,6 +35,7 @@ var (
 	cfg            *Config
 	tosserstat     = NewTosserStat(statfile)
 	savestatchan   chan processingItem
+	startTime      = time.Now().Round(time.Second)
 
 	//эти переменные заполняются линкером.
 	//чтобы их передать надо компилировать программу с ключами

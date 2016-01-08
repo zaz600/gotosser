@@ -42,7 +42,8 @@ func showstat(w http.ResponseWriter, r *http.Request) {
 		VersionDate     string
 		DirStatInfoList []*dirStat
 		ErrorHistory    []errorHistoryItem
-	}{now, version, buildtime, dirStatInfoList, errorHistory.Get()})
+		Uptime          time.Duration
+	}{now, version, buildtime, dirStatInfoList, errorHistory.Get(), time.Now().Round(time.Second).Sub(startTime)})
 }
 
 func runHTTP(cfg *Config) {

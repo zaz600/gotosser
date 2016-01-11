@@ -181,7 +181,7 @@ func processItem() {
 			//создаем каталоги
 			fullDstFileDir := filepath.Dir(fullDstFilePath)
 			if err := os.MkdirAll(fullDstFileDir, os.ModeDir); err != nil {
-				errorln("Ошибка создания каталога", fullDstFileDir, err)
+				errorln("Ошибка создания каталога-назначения", item.fullSrcFilePath, fullDstFileDir, err)
 				continue
 			}
 
@@ -191,7 +191,7 @@ func processItem() {
 				case "replace":
 					log.Infof("Файл существует. %s ifexists=%s. Удаляем файл в конечном каталоге", fullDstFilePath, rule.IfExists)
 					if err := os.Remove(fullDstFilePath); err != nil {
-						errorln(err)
+						errorln("Файл существует. %s ifexists=%s. Файл удалить не получилось", fullDstFilePath, rule.IfExists, err)
 						continue
 					}
 				case "skip":
@@ -214,7 +214,7 @@ func processItem() {
 					log.WithFields(logrus.Fields{"src": item.fullSrcFilePath, "dst": fullDstFilePath}).Info("Файл перемещён")
 					fileLog.WithFields(logrus.Fields{"src": item.fullSrcFilePath, "dst": fullDstFilePath}).Info("Файл перемещён")
 				} else {
-					errorln(err)
+					errorln("Ошибка перемещения файла", item.fullSrcFilePath, err)
 				}
 			case "copy":
 				log.WithFields(logrus.Fields{"src": item.fullSrcFilePath, "dst": fullDstFilePath}).Debug("Копируем файл")
@@ -223,7 +223,7 @@ func processItem() {
 					log.WithFields(logrus.Fields{"src": item.fullSrcFilePath, "dst": fullDstFilePath}).Info("Файл скопирован")
 					fileLog.WithFields(logrus.Fields{"src": item.fullSrcFilePath, "dst": fullDstFilePath}).Info("Файл скопирован")
 				} else {
-					errorln(err)
+					errorln("Ошибка копирования файла", item.fullSrcFilePath, err)
 				}
 			default:
 				errorln("Неизвестный режим", rule.Mode)
@@ -306,7 +306,7 @@ func processScanGroup(scangroup ScanGroup) {
 					continue
 				}
 			} else {
-				errorln(err)
+				errorln("Не удалось создать каталог-источник", err)
 				log.Debugf("Обработка каталога завершена %s", fullSrcDir)
 				continue
 			}
@@ -315,7 +315,7 @@ func processScanGroup(scangroup ScanGroup) {
 		//читаем содержимое каталога
 		items, err := ioutil.ReadDir(fullSrcDir)
 		if err != nil {
-			errorln(err)
+			errorln("Не удалось прочитать список файлов в каталоге", fullSrcDir, err)
 			log.Debugf("Обработка каталога завершена %s", fullSrcDir)
 			continue
 		}
@@ -355,7 +355,7 @@ func scanLoop(cfg *Config) {
 		} else {
 			log.Infoln("Перезагружаем конфигурационный файл")
 			if err := initLogger(cfgTmp); err != nil {
-				errorln(err)
+				errorln("Ошибка перезагрузки конфиг-файла", err)
 			} else {
 				cfg = cfgTmp
 			}
